@@ -2,6 +2,7 @@ package com.tkporter.sendsms;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.provider.Telephony;
 
@@ -56,44 +57,45 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
     public void send(ReadableMap options, final Callback callback) {
         try {
             this.callback = callback;
-            new SendSMSObserver(reactContext, this, options).start();
+            //new SendSMSObserver(reactContext, this, options).start();
 
             String body = options.hasKey("body") ? options.getString("body") : "";
             ReadableArray recipients = options.hasKey("recipients") ? options.getArray("recipients") : null;
 
             Intent sendIntent;
+            String recipientString = "";
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
-                sendIntent = new Intent(Intent.ACTION_SEND);
-                if (defaultSmsPackageName != null){
-                    sendIntent.setPackage(defaultSmsPackageName);
-                }
-                sendIntent.setType("text/plain");
-            }else {
-                sendIntent = new Intent(Intent.ACTION_VIEW);
-                sendIntent.setType("vnd.android-dir/mms-sms");
-            }
-
-            sendIntent.putExtra("sms_body", body);
-            sendIntent.putExtra("exit_on_sent", true);
-
-            //if recipients specified
             if (recipients != null) {
                 //Samsung for some reason uses commas and not semicolons as a delimiter
                 String separator = "; ";
                 if(android.os.Build.MANUFACTURER.equalsIgnoreCase("Samsung")){
                     separator = ", ";
                 }
-                String recipientString = "";
+                
                 for (int i = 0; i < recipients.size(); i++) {
                     recipientString += recipients.getString(i);
                     recipientString += separator;
                 }
-                sendIntent.putExtra("address", recipientString);
             }
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
 
-            reactContext.startActivityForResult(sendIntent, REQUEST_CODE, sendIntent.getExtras());
+                Uri uri = Uri.parse(options.getString("attachment"));
+                sendIntent = getDefaultShareIntent(uri.getLastPathSegment());
+                if (defaultSmsPackageName != null) {
+                    sendIntent.setPackage(defaultSmsPackageName);
+                }
+                if (recipientString != "") {
+                    sendIntent.putExtra("address", recipientString);
+                    sendIntent.putExtra("sms_body", body);
+
+                } else {
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, body);
+
+                }
+                sendIntent.putExtra("exit_on_sent", true);
+                reactContext.startActivityForResult(sendIntent, REQUEST_CODE, sendIntent.getExtras());
+            }
         } catch (Exception e) {
             //error!
             sendCallback(false, false, true);
@@ -101,4 +103,14 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
         }
     }
 
+    private Intent getDefaultShareIntent(String fileName) {
+        Uri uri = Uri.parse("content://com.mimi_stelladot.providers/img").buildUpon().appendPath(fileName).build();
+        final Intent shareIntent = new Intent();
+        shareIntent.setAction(Intent.ACTION_SEND);
+        shareIntent.setType(reactContext.getContentResolver().getType(uri));
+        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        return shareIntent;
+    }
 }

@@ -6,7 +6,13 @@
 
 
 #import "SendSMS.h"
-#import "RCTUtils.h"
+#import <React/RCTUtils.h>
+
+#if __has_include(<React/RCTConvert.h>)
+#import <React/RCTConvert.h>
+#elif __has_include("RCTConvert.h")
+#import "RCTConvert.h"
+#endif
 
 @implementation SendSMS
 
@@ -20,11 +26,11 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(send:(NSDictionary *)options :(RCTResponseSenderBlock)callback)
 {
     _callback = callback;
-    MFMessageComposeViewController *messageController = [[MFMessageComposeViewController alloc] init];
     if([MFMessageComposeViewController canSendText])
     {
-
+        MFMessageComposeViewController *messageController = [[MFMessageComposeViewController alloc] init];
         NSString *body = options[@"body"];
+        NSString *filePath = options[@"attachment"];
         NSArray *recipients = options[@"recipients"];
 
         if (body) {
@@ -32,15 +38,21 @@ RCT_EXPORT_METHOD(send:(NSDictionary *)options :(RCTResponseSenderBlock)callback
         }
 
         if (recipients) {
-          messageController.recipients = recipients;
+            messageController.recipients = recipients;
         }
+        
+        if (filePath && MFMessageComposeViewController.canSendAttachments) {
+            NSURL *fileURL = [RCTConvert NSURL:filePath];
+            if ([MFMessageComposeViewController isSupportedAttachmentUTI:@"public.png"]) {
+                [messageController addAttachmentURL:fileURL withAlternateFilename:@"stelladot.png"];
+            }
+         }
 
         messageController.messageComposeDelegate = self;
-        UIViewController *currentViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
-        while(currentViewController.presentedViewController) {
-            currentViewController = currentViewController.presentedViewController;
-        }
-        [currentViewController presentViewController:messageController animated:YES completion:nil];
+        UIViewController *currentViewController = RCTPresentedViewController();
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [currentViewController presentViewController:messageController animated:YES completion:nil];
+        });
     } else {
         bool completed = NO, cancelled = NO, error = YES;
         _callback(@[@(completed), @(cancelled), @(error)]);

@@ -80,19 +80,27 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
 
-                Uri uri = Uri.parse(options.getString("attachment"));
-                sendIntent = getDefaultShareIntent(uri.getLastPathSegment());
+                String attachment = options.hasKey("attachment") ? options.getString("attachment") : null;
+                if (attachment != null) {
+                    Uri uri = Uri.parse(attachment);
+                    sendIntent = getDefaultShareIntent(uri.getLastPathSegment());
+                } else {
+                    sendIntent = new Intent(Intent.ACTION_SEND);
+                    sendIntent.setType("text/plain");
+                }
+
                 if (defaultSmsPackageName != null) {
                     sendIntent.setPackage(defaultSmsPackageName);
                 }
+
                 if (recipientString != "") {
                     sendIntent.putExtra("address", recipientString);
                     sendIntent.putExtra("sms_body", body);
 
                 } else {
                     sendIntent.putExtra(Intent.EXTRA_TEXT, body);
-
                 }
+
                 sendIntent.putExtra("exit_on_sent", true);
                 reactContext.startActivityForResult(sendIntent, REQUEST_CODE, sendIntent.getExtras());
             }

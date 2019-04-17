@@ -14,6 +14,16 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.Callback;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.channels.FileChannel;
+
 public class SendSMSModule extends ReactContextBaseJavaModule implements ActivityEventListener {
 
     private final ReactApplicationContext reactContext;
@@ -81,8 +91,23 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
                 String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
 
                 String attachment = options.hasKey("attachment") ? options.getString("attachment") : null;
+                boolean isWebUrl = options.hasKey("isWebUrl") ? optoins.getBoolean("isWebUrl") : false;
+
                 if (attachment != null) {
-                    Uri uri = Uri.parse(attachment);
+                    Uri uri;
+                    if (isWebUrl) {
+                        byte[] response = this.downloadFile(attachment);
+
+                        long unixTime = System.currentTimeMillis() / 1000L;
+                        String outputPath = reactContext.getFilesDir().getAbsolutePath() + String.valueOf(unixTime) + ".jpg";
+
+                        this.writeDownloadedFile(response, outputPath);
+
+                        uri = Uri.parse(outputPath);
+                    } else {
+                        uri = Uri.parse(attachment);
+                    }
+
                     sendIntent = getDefaultShareIntent(uri.getLastPathSegment());
                 } else {
                     sendIntent = new Intent(Intent.ACTION_SEND);
@@ -119,5 +144,28 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
         shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return shareIntent;
+    }
+
+    private byte[] downloadFile(String webURL) throws IOException {
+        URL url = new URL(webURL);
+        InputStream in = new BufferedInputStream(url.openStream());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int n = 0;
+        while (-1!=(n=in.read(buf)))
+        {
+            out.write(buf, 0, n);
+        }
+        out.close();
+        in.close();
+        byte[] response = out.toByteArray();
+        return response;
+    }
+
+    private void writeDownloadedFile(byte[] data, String outputPath) throws IOException {
+        FileOutputStream fos = new FileOutputStream(outputPath);
+        fos.write(data);
+        fos.flush();
+        fos.close();
     }
 }

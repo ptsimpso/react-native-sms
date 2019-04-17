@@ -91,7 +91,7 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
                 String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
 
                 String attachment = options.hasKey("attachment") ? options.getString("attachment") : null;
-                boolean isWebUrl = options.hasKey("isWebUrl") ? optoins.getBoolean("isWebUrl") : false;
+                boolean isWebUrl = options.hasKey("isWebUrl") ? options.getBoolean("isWebUrl") : false;
 
                 if (attachment != null) {
                     Uri uri;

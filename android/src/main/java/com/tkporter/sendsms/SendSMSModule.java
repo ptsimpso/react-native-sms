@@ -64,7 +64,7 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
     }
 
     @ReactMethod
-    public void send(ReadableMap options, final Callback callback) {
+    public void send(ReadableMap options, final Callback callback) throws IOException {
         try {
             this.callback = callback;
             //new SendSMSObserver(reactContext, this, options).start();

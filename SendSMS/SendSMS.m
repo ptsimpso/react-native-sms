@@ -32,7 +32,6 @@ RCT_EXPORT_METHOD(send:(NSDictionary *)options :(RCTResponseSenderBlock)callback
         NSString *body = options[@"body"];
         NSString *filePath = options[@"attachment"];
         NSArray *recipients = options[@"recipients"];
-        NSNumber *isWebUrl = options[@"isWebUrl"];
 
         if (body) {
           messageController.body = body;
@@ -44,7 +43,8 @@ RCT_EXPORT_METHOD(send:(NSDictionary *)options :(RCTResponseSenderBlock)callback
         
         if (filePath && MFMessageComposeViewController.canSendAttachments) {
             NSURL *fileURL = [RCTConvert NSURL:filePath];
-            if ([isWebUrl boolValue]) {
+            BOOL isWebUrl = [filePath hasPrefix:@"http"];
+            if (isWebUrl) {
                 NSData *webImageData = [NSData dataWithContentsOfURL:fileURL];
                 if ([MFMessageComposeViewController isSupportedAttachmentUTI:@"public.jpeg"]) {
                     [messageController addAttachmentData:webImageData typeIdentifier:@"public.jpeg" filename:@"stelladot.jpeg"];

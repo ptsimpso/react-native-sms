@@ -91,15 +91,15 @@ public class SendSMSModule extends ReactContextBaseJavaModule implements Activit
                 String defaultSmsPackageName = Telephony.Sms.getDefaultSmsPackage(reactContext);
 
                 String attachment = options.hasKey("attachment") ? options.getString("attachment") : null;
-                boolean isWebUrl = options.hasKey("isWebUrl") ? options.getBoolean("isWebUrl") : false;
 
                 if (attachment != null) {
                     Uri uri;
+                    boolean isWebUrl = attachment.startsWith("http");
                     if (isWebUrl) {
                         byte[] response = this.downloadFile(attachment);
 
                         long unixTime = System.currentTimeMillis() / 1000L;
-                        String outputPath = reactContext.getFilesDir().getAbsolutePath() + String.valueOf(unixTime) + ".jpg";
+                        String outputPath = reactContext.getCacheDir().getAbsolutePath() + "/sms" + String.valueOf(unixTime) + ".jpg";
 
                         this.writeDownloadedFile(response, outputPath);
 

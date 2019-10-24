@@ -51,7 +51,7 @@ RCT_EXPORT_METHOD(send:(NSDictionary *)options :(RCTResponseSenderBlock)callback
                 }
             } else {
                 if ([MFMessageComposeViewController isSupportedAttachmentUTI:@"public.png"]) {
-                    [messageController addAttachmentURL:fileURL withAlternateFilename:@"stelladot.png"];
+                    [messageController addAttachmentData:[NSData dataWithContentsOfURL:fileURL] typeIdentifier:@"stelladot.png" filename:@"public.png"];
                 }
             }
          }
